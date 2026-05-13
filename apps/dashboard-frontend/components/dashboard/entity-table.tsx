@@ -14,25 +14,20 @@ export default function EntityTable() {
   const typeParam = searchParams.get("type");
   
   const [search, setSearch] = useState("");
-  const [entities, setEntities] = useState<any[]>([]);
-  const [label, setLabel] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [entities, setEntities] = useState<EntityRecord[]>([]);
 
   // Determine target role based on URL ?type=... or defaults
   const targetRole = role ? (typeParam || ROLE_CAN_CREATE[role as AuthRole]?.roles[0] || "") : "";
+  const label = targetRole.charAt(0).toUpperCase() + targetRole.slice(1);
 
   useEffect(() => {
     async function fetchData() {
       if (!role || !targetRole) return;
-      setLoading(true);
       try {
         const data = await getEntities(role as AuthRole, targetRole);
         setEntities(data);
-        setLabel(targetRole.charAt(0).toUpperCase() + targetRole.slice(1));
       } catch (err) {
         console.error("Failed to fetch entities", err);
-      } finally {
-        setLoading(false);
       }
     }
     fetchData();
@@ -51,9 +46,10 @@ export default function EntityTable() {
     if (confirm(`Are you sure you want to delete this ${targetRole}?`)) {
       try {
         await deleteEntity(role as AuthRole, targetRole, id);
-        setEntities(entities.filter(e => e.id !== id));
-      } catch (err: any) {
-        alert(err.message || "Failed to delete account");
+        setEntities((prev) => prev.filter((entity) => entity.id !== id));
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Failed to delete account";
+        alert(message);
       }
     }
   };
@@ -162,7 +158,9 @@ export default function EntityTable() {
                   </span>
                 </td>
                 <td style={{ padding: "8px 16px", fontSize: "var(--font-size-xs)", color: "var(--text-muted)" }}>
-                  {new Date(entity.CreatedAt || entity.createdAt || Date.now()).toLocaleDateString()}
+                  {entity.CreatedAt || entity.createdAt
+                    ? new Date(entity.CreatedAt || entity.createdAt).toLocaleDateString()
+                    : "N/A"}
                 </td>
                 <td style={{ padding: "8px 16px" }}>
                   <button
