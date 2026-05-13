@@ -12,7 +12,7 @@ export default function EntityTable() {
   const { role } = useAuth();
   const searchParams = useSearchParams();
   const typeParam = searchParams.get("type");
-  
+
   const [search, setSearch] = useState("");
   const [entities, setEntities] = useState<EntityRecord[]>([]);
 
@@ -113,7 +113,7 @@ export default function EntityTable() {
           </thead>
           <tbody>
             {filtered.map((entity) => (
-              <tr key={entity.uniqueId} style={{ borderBottom: "1px solid var(--border)" }}>
+              <tr key={entity.id} style={{ borderBottom: "1px solid var(--border)" }}>
                 <td style={{ padding: "8px 16px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <div
@@ -199,3 +199,4 @@ export default function EntityTable() {
     </div>
   );
 }
+
