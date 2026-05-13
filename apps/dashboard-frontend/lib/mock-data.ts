@@ -199,3 +199,12 @@ export function getMockStats(role: string) {
       return [];
   }
 }
+
+export function getAllMockEntities(): MockEntity[] {
+  return [
+    ...MOCK_UPPER_MANAGEMENT,
+    ...MOCK_ADMINS,
+    ...MOCK_TEACHERS,
+    ...MOCK_STUDENTS,
+  ];
+}

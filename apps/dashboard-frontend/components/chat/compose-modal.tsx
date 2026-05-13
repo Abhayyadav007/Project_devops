@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent, useMemo } from "react";
 import { X, Send } from "lucide-react";
+import { getAllMockEntities } from "@/lib/mock-data";
 
 interface ComposeModalProps {
   onClose: () => void;
@@ -13,6 +14,8 @@ export default function ComposeModal({ onClose }: ComposeModalProps) {
   const [body, setBody] = useState("");
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
+  
+  const allUsers = useMemo(() => getAllMockEntities(), []);
 
   async function handleSend(e: FormEvent) {
     e.preventDefault();
@@ -69,7 +72,14 @@ export default function ComposeModal({ onClose }: ComposeModalProps) {
             <div style={{ borderBottom: "1px solid var(--border)" }}>
               <div style={{ display: "flex", alignItems: "center", padding: "0 12px" }}>
                 <label style={{ fontSize: "var(--font-size-sm)", color: "var(--text-muted)", width: 32 }}>To</label>
-                <input type="text" required value={to} onChange={(e) => setTo(e.target.value)} placeholder="Recipient" style={inlineInput} />
+                <input type="text" list="users-list" required value={to} onChange={(e) => setTo(e.target.value)} placeholder="Recipient (Select or type)" style={inlineInput} />
+                <datalist id="users-list">
+                  {allUsers.map((user) => (
+                    <option key={user.uniqueId} value={user.email}>
+                      {user.name} ({user.email})
+                    </option>
+                  ))}
+                </datalist>
               </div>
             </div>
             <div style={{ borderBottom: "1px solid var(--border)" }}>

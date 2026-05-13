@@ -1,23 +1,40 @@
 "use client";
 
 import { useAuth } from "@/hooks/use-auth";
-import { getMockEntitiesForRole } from "@/lib/mock-data";
+import { getMockEntitiesForRole, type MockEntity } from "@/lib/mock-data";
 import { type AuthRole } from "@/lib/constants";
-import { Search } from "lucide-react";
-import { useState } from "react";
+import { Search, Trash2 } from "lucide-react";
+import { useState, useEffect } from "react";
 
 export default function EntityTable() {
   const { role } = useAuth();
   const [search, setSearch] = useState("");
+  const [entities, setEntities] = useState<MockEntity[]>([]);
+  const [label, setLabel] = useState("");
+
+  useEffect(() => {
+    if (role) {
+      const data = getMockEntitiesForRole(role as AuthRole);
+      setEntities(data.entities);
+      setLabel(data.label);
+    }
+  }, [role]);
+
   if (!role) return null;
 
-  const { entities, label } = getMockEntitiesForRole(role as AuthRole);
   const filtered = entities.filter(
     (e) =>
       e.name.toLowerCase().includes(search.toLowerCase()) ||
       e.uniqueId.toString().includes(search) ||
       e.email.toLowerCase().includes(search.toLowerCase())
   );
+
+  const handleDelete = (id: number) => {
+    if (confirm("Are you sure you want to delete this account?")) {
+      setEntities(entities.filter(e => e.id !== id));
+      // In a real app, you would call an API here to delete the entity
+    }
+  };
 
   return (
     <div className="animate-fade-in">
@@ -58,7 +75,7 @@ export default function EntityTable() {
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ borderBottom: "1px solid var(--border)", background: "var(--bg-secondary)" }}>
-              {["Name", "ID", "Email", "Status", "Created"].map((h) => (
+              {["Name", "ID", "Email", "Status", "Created", "Actions"].map((h) => (
                 <th
                   key={h}
                   style={{
@@ -78,7 +95,7 @@ export default function EntityTable() {
           </thead>
           <tbody>
             {filtered.map((entity) => (
-              <tr key={entity.id} style={{ borderBottom: "1px solid var(--border)" }}>
+              <tr key={entity.uniqueId} style={{ borderBottom: "1px solid var(--border)" }}>
                 <td style={{ padding: "8px 16px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <div
@@ -124,6 +141,29 @@ export default function EntityTable() {
                 </td>
                 <td style={{ padding: "8px 16px", fontSize: "var(--font-size-xs)", color: "var(--text-muted)" }}>
                   {new Date(entity.createdAt).toLocaleDateString()}
+                </td>
+                <td style={{ padding: "8px 16px" }}>
+                  <button
+                    onClick={() => handleDelete(entity.id)}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      width: 28,
+                      height: 28,
+                      borderRadius: "var(--radius-sm)",
+                      border: "none",
+                      background: "transparent",
+                      color: "var(--error)",
+                      cursor: "pointer",
+                      transition: "background 0.2s",
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(239, 68, 68, 0.1)")}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                    title="Delete Account"
+                  >
+                    <Trash2 size={16} />
+                  </button>
                 </td>
               </tr>
             ))}
