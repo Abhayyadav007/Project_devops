@@ -149,4 +149,72 @@ ValidatorRouter.post("/changepassword", ValidatorAuthMiddleware, async (req: Req
   }
 });
 
+ValidatorRouter.get("/uppermanagement", ValidatorAuthMiddleware, async (req: Request, res: Response) => {
+  try {
+    const ums = await prisma.upperManagement.findMany({
+      where: { createdByValidatorId: req.validatorId },
+      select: { id: true, name: true, upperManagementId: true, email: true, CreatedAt: true }
+    });
+    res.json(ums);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching upper management" });
+  }
+});
+
+ValidatorRouter.delete("/uppermanagement/:id", ValidatorAuthMiddleware, async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(req.params.id as string);
+    await prisma.upperManagement.delete({ where: { id, createdByValidatorId: req.validatorId } });
+    res.json({ message: "Upper Management deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Error deleting upper management" });
+  }
+});
+/* ── All users (for compose recipient lookup) ── */
+ValidatorRouter.get("/users", ValidatorAuthMiddleware, async (req: Request, res: Response) => {
+  try {
+    const ums = await prisma.upperManagement.findMany({
+      where: { createdByValidatorId: req.validatorId },
+      select: { id: true, name: true, upperManagementId: true, email: true, CreatedAt: true }
+    });
+    res.json(ums);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching users" });
+  }
+});
+/* ── Messages ── */
+ValidatorRouter.get("/messages", ValidatorAuthMiddleware, async (req: Request, res: Response) => {
+  const folder = (req.query.folder as string) || "inbox";
+  try {
+    const v = await prisma.validator.findUnique({ where: { id: req.validatorId } });
+    if (!v) return res.status(404).json({ message: "Validator not found" });
+
+    let messages;
+    if (folder === "sent") {
+      messages = await prisma.message.findMany({ where: { senderRole: "validator", senderId: v.id }, orderBy: { createdAt: "desc" } });
+    } else if (folder === "starred") {
+      messages = await prisma.message.findMany({ where: { OR: [{ recipientRole: "validator", recipientId: v.id, starred: true }, { senderRole: "validator", senderId: v.id, starred: true }] }, orderBy: { createdAt: "desc" } });
+    } else {
+      messages = await prisma.message.findMany({ where: { recipientRole: "validator", recipientId: v.id }, orderBy: { createdAt: "desc" } });
+    }
+
+    res.json(messages.map((m) => ({ id: String(m.id), from: m.senderName, fromRole: m.senderRole, to: m.recipientName, toRole: m.recipientRole, subject: m.subject, body: m.body, timestamp: m.createdAt.toISOString(), read: m.read, starred: m.starred, folder: folder === "sent" ? "sent" : "inbox" })));
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching messages" });
+  }
+});
+
+ValidatorRouter.post("/messages", ValidatorAuthMiddleware, async (req: Request, res: Response) => {
+  const { to, subject, body } = req.body;
+  if (!to || !subject || !body) return res.status(400).json({ message: "to, subject, and body are required" });
+  try {
+    const v = await prisma.validator.findUnique({ where: { id: req.validatorId } });
+    if (!v) return res.status(404).json({ message: "Validator not found" });
+    await prisma.message.create({ data: { senderRole: "validator", senderId: v.id, senderName: v.name, recipientRole: "unknown", recipientId: 0, recipientName: to, subject, body } });
+    res.status(201).json({ message: "Message sent successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Error sending message" });
+  }
+});
+
 export default ValidatorRouter;

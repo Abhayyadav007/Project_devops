@@ -3,28 +3,11 @@
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { CHAT_SIDEBAR_ITEMS } from "@/lib/constants";
-import { MOCK_MESSAGES } from "@/lib/mock-data";
 import { Inbox, Send, Star, FileText, Trash2, PenSquare } from "lucide-react";
 
 const ICON_MAP: Record<string, React.ComponentType<{ size?: number }>> = {
   Inbox, Send, Star, FileText, Trash2,
 };
-
-function getCountForView(view: string): number {
-  switch (view) {
-    case "inbox": return MOCK_MESSAGES.filter((m) => m.folder === "inbox").length;
-    case "sent": return MOCK_MESSAGES.filter((m) => m.folder === "sent").length;
-    case "starred": return MOCK_MESSAGES.filter((m) => m.starred).length;
-    case "drafts": return MOCK_MESSAGES.filter((m) => m.folder === "drafts").length;
-    case "trash": return MOCK_MESSAGES.filter((m) => m.folder === "trash").length;
-    default: return 0;
-  }
-}
-
-function getUnreadCount(view: string): number {
-  if (view === "inbox") return MOCK_MESSAGES.filter((m) => m.folder === "inbox" && !m.read).length;
-  return 0;
-}
 
 interface ChatSidebarProps {
   onCompose: () => void;
@@ -81,8 +64,6 @@ export default function ChatSidebar({ onCompose }: ChatSidebarProps) {
             viewId === "inbox"
               ? !searchParams.has("view") || currentView === "inbox"
               : currentView === viewId;
-          const count = getCountForView(viewId);
-          const unread = getUnreadCount(viewId);
 
           return (
             <Link
@@ -105,15 +86,6 @@ export default function ChatSidebar({ onCompose }: ChatSidebarProps) {
                 <Icon size={16} />
                 {item.label}
               </span>
-              {unread > 0 ? (
-                <span style={{ fontSize: "var(--font-size-xs)", fontWeight: 700, color: "var(--accent)" }}>
-                  {unread}
-                </span>
-              ) : count > 0 ? (
-                <span style={{ fontSize: "var(--font-size-xs)", color: "var(--text-muted)" }}>
-                  {count}
-                </span>
-              ) : null}
             </Link>
           );
         })}

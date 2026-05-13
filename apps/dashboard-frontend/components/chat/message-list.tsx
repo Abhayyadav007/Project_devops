@@ -1,10 +1,10 @@
 "use client";
 
 import { Star } from "lucide-react";
-import type { MockMessage } from "@/lib/mock-data";
+import type { Message } from "@/lib/types";
 
 interface MessageListProps {
-  messages: MockMessage[];
+  messages: Message[];
   selectedId: string | null;
   onSelect: (id: string) => void;
 }

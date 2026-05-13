@@ -141,5 +141,44 @@ StudentRouter.post("/changepassword", studentAuthMiddleware, async (req: Request
     return res.status(500).json({ message: "Internal server error" });
   }
 });
+/* ── Messages ── */
+StudentRouter.get("/messages", studentAuthMiddleware, async (req: Request, res: Response) => {
+  const folder = (req.query.folder as string) || "inbox";
+  try {
+    const s = await prisma.student.findUnique({ where: { id: req.userId } });
+    if (!s) return res.status(404).json({ message: "Student not found" });
+
+    let messages;
+    if (folder === "sent") {
+      messages = await prisma.message.findMany({ where: { senderRole: "student", senderId: s.id }, orderBy: { createdAt: "desc" } });
+    } else if (folder === "starred") {
+      messages = await prisma.message.findMany({ where: { OR: [{ recipientRole: "student", recipientId: s.id, starred: true }, { senderRole: "student", senderId: s.id, starred: true }] }, orderBy: { createdAt: "desc" } });
+    } else {
+      messages = await prisma.message.findMany({ where: { recipientRole: "student", recipientId: s.id }, orderBy: { createdAt: "desc" } });
+    }
+
+    res.json(messages.map((m) => ({ id: String(m.id), from: m.senderName, fromRole: m.senderRole, to: m.recipientName, toRole: m.recipientRole, subject: m.subject, body: m.body, timestamp: m.createdAt.toISOString(), read: m.read, starred: m.starred, folder: folder === "sent" ? "sent" : "inbox" })));
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching messages" });
+  }
+});
+
+StudentRouter.post("/messages", studentAuthMiddleware, async (req: Request, res: Response) => {
+  const { to, subject, body } = req.body;
+  if (!to || !subject || !body) return res.status(400).json({ message: "to, subject, and body are required" });
+  try {
+    const s = await prisma.student.findUnique({ where: { id: req.userId } });
+    if (!s) return res.status(404).json({ message: "Student not found" });
+    await prisma.message.create({ data: { senderRole: "student", senderId: s.id, senderName: s.name, recipientRole: "unknown", recipientId: 0, recipientName: to, subject, body } });
+    res.status(201).json({ message: "Message sent successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Error sending message" });
+  }
+});
+
+/* ── Users ── */
+StudentRouter.get("/users", studentAuthMiddleware, async (_req: Request, res: Response) => {
+  res.json([]);
+});
 
 export default StudentRouter;

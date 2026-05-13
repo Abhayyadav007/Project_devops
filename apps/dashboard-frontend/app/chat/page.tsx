@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useMemo, useCallback, Suspense } from "react";
+import { useState, useMemo, useCallback, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import MessageList from "@/components/chat/message-list";
 import MessageDetail from "@/components/chat/message-detail";
 import ComposeModal from "@/components/chat/compose-modal";
-import { MOCK_MESSAGES } from "@/lib/mock-data";
+import type { Message } from "@/lib/types";
+import { getMessages } from "@/lib/api";
 import { PenSquare, ChevronDown, Users, X } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { ROLE_CAN_CREATE, type AuthRole } from "@/lib/constants";
@@ -23,22 +24,31 @@ function ChatContent() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [composing, setComposing] = useState(false);
   const [creatingGroup, setCreatingGroup] = useState(false);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const messages = useMemo(() => {
-    switch (view) {
-      case "sent": return MOCK_MESSAGES.filter((m) => m.folder === "sent");
-      case "starred": return MOCK_MESSAGES.filter((m) => m.starred);
-      case "drafts": return MOCK_MESSAGES.filter((m) => m.folder === "drafts");
-      case "trash": return MOCK_MESSAGES.filter((m) => m.folder === "trash");
-      default: return MOCK_MESSAGES.filter((m) => m.folder === "inbox");
+  const fetchMessages = useCallback(async () => {
+    if (!role) return;
+    setLoading(true);
+    try {
+      const data = await getMessages(role as AuthRole, view);
+      setMessages(data);
+    } catch {
+      setMessages([]);
+    } finally {
+      setLoading(false);
     }
-  }, [view]);
+  }, [role, view]);
+
+  useEffect(() => {
+    fetchMessages();
+  }, [fetchMessages]);
 
   // Auto-select first message when messages change or no selection
   const effectiveSelectedId = selectedId && messages.find((m) => m.id === selectedId) ? selectedId : messages[0]?.id ?? null;
 
   const selectedMessage = effectiveSelectedId
-    ? MOCK_MESSAGES.find((m) => m.id === effectiveSelectedId) ?? null
+    ? messages.find((m) => m.id === effectiveSelectedId) ?? null
     : null;
 
   const handleFolderChange = useCallback((folder: string) => {
@@ -198,11 +208,17 @@ function ChatContent() {
 
         {/* Messages */}
         <div style={{ flex: 1, overflowY: "auto" }}>
-          <MessageList
-            messages={messages}
-            selectedId={effectiveSelectedId}
-            onSelect={setSelectedId}
-          />
+          {loading ? (
+            <div style={{ padding: 40, textAlign: "center", color: "var(--text-muted)", fontSize: "var(--font-size-sm)" }}>
+              Loading messages...
+            </div>
+          ) : (
+            <MessageList
+              messages={messages}
+              selectedId={effectiveSelectedId}
+              onSelect={setSelectedId}
+            />
+          )}
         </div>
       </div>
 
@@ -218,7 +234,7 @@ function ChatContent() {
       </div>
 
       {/* Compose modal */}
-      {composing && <ComposeModal onClose={() => setComposing(false)} />}
+      {composing && <ComposeModal onClose={() => setComposing(false)} onSent={fetchMessages} />}
 
       {/* Create Group modal */}
       {creatingGroup && (

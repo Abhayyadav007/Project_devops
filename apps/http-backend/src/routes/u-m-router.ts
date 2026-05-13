@@ -143,4 +143,72 @@ UpperManagementRouter.post("/changepassword", uppermanagementAuthMiddleware, asy
   }
 });
 
+UpperManagementRouter.get("/admin", uppermanagementAuthMiddleware, async (req: Request, res: Response) => {
+  try {
+    const admins = await prisma.admin.findMany({
+      where: { createdByUpperManagementId: req.uppermanagementId },
+      select: { id: true, name: true, adminId: true, email: true, CreatedAt: true }
+    });
+    res.json(admins);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching admins" });
+  }
+});
+
+UpperManagementRouter.delete("/admin/:id", uppermanagementAuthMiddleware, async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(req.params.id as string);
+    await prisma.admin.delete({ where: { id, createdByUpperManagementId: req.uppermanagementId } });
+    res.json({ message: "Admin deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Error deleting admin" });
+  }
+});
+/* ── All users (for compose recipient lookup) ── */
+UpperManagementRouter.get("/users", uppermanagementAuthMiddleware, async (req: Request, res: Response) => {
+  try {
+    const admins = await prisma.admin.findMany({
+      where: { createdByUpperManagementId: req.uppermanagementId },
+      select: { id: true, name: true, adminId: true, email: true, CreatedAt: true }
+    });
+    res.json(admins);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching users" });
+  }
+});
+/* ── Messages ── */
+UpperManagementRouter.get("/messages", uppermanagementAuthMiddleware, async (req: Request, res: Response) => {
+  const folder = (req.query.folder as string) || "inbox";
+  try {
+    const um = await prisma.upperManagement.findUnique({ where: { id: req.uppermanagementId } });
+    if (!um) return res.status(404).json({ message: "Upper Management not found" });
+
+    let messages;
+    if (folder === "sent") {
+      messages = await prisma.message.findMany({ where: { senderRole: "uppermanagement", senderId: um.id }, orderBy: { createdAt: "desc" } });
+    } else if (folder === "starred") {
+      messages = await prisma.message.findMany({ where: { OR: [{ recipientRole: "uppermanagement", recipientId: um.id, starred: true }, { senderRole: "uppermanagement", senderId: um.id, starred: true }] }, orderBy: { createdAt: "desc" } });
+    } else {
+      messages = await prisma.message.findMany({ where: { recipientRole: "uppermanagement", recipientId: um.id }, orderBy: { createdAt: "desc" } });
+    }
+
+    res.json(messages.map((m) => ({ id: String(m.id), from: m.senderName, fromRole: m.senderRole, to: m.recipientName, toRole: m.recipientRole, subject: m.subject, body: m.body, timestamp: m.createdAt.toISOString(), read: m.read, starred: m.starred, folder: folder === "sent" ? "sent" : "inbox" })));
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching messages" });
+  }
+});
+
+UpperManagementRouter.post("/messages", uppermanagementAuthMiddleware, async (req: Request, res: Response) => {
+  const { to, subject, body } = req.body;
+  if (!to || !subject || !body) return res.status(400).json({ message: "to, subject, and body are required" });
+  try {
+    const um = await prisma.upperManagement.findUnique({ where: { id: req.uppermanagementId } });
+    if (!um) return res.status(404).json({ message: "Upper Management not found" });
+    await prisma.message.create({ data: { senderRole: "uppermanagement", senderId: um.id, senderName: um.name, recipientRole: "unknown", recipientId: 0, recipientName: to, subject, body } });
+    res.status(201).json({ message: "Message sent successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Error sending message" });
+  }
+});
+
 export default UpperManagementRouter;

@@ -1,38 +1,60 @@
 "use client";
 
 import { useAuth } from "@/hooks/use-auth";
-import { getMockEntitiesForRole, type MockEntity } from "@/lib/mock-data";
-import { type AuthRole } from "@/lib/constants";
+import { type EntityRecord } from "@/lib/types";
+import { getEntities, deleteEntity } from "@/lib/api";
+import { ROLE_CAN_CREATE, type AuthRole } from "@/lib/constants";
 import { Search, Trash2 } from "lucide-react";
 import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 
 export default function EntityTable() {
   const { role } = useAuth();
+  const searchParams = useSearchParams();
+  const typeParam = searchParams.get("type");
+  
   const [search, setSearch] = useState("");
-  const [entities, setEntities] = useState<MockEntity[]>([]);
+  const [entities, setEntities] = useState<any[]>([]);
   const [label, setLabel] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  // Determine target role based on URL ?type=... or defaults
+  const targetRole = role ? (typeParam || ROLE_CAN_CREATE[role as AuthRole]?.roles[0] || "") : "";
 
   useEffect(() => {
-    if (role) {
-      const data = getMockEntitiesForRole(role as AuthRole);
-      setEntities(data.entities);
-      setLabel(data.label);
+    async function fetchData() {
+      if (!role || !targetRole) return;
+      setLoading(true);
+      try {
+        const data = await getEntities(role as AuthRole, targetRole);
+        setEntities(data);
+        setLabel(targetRole.charAt(0).toUpperCase() + targetRole.slice(1));
+      } catch (err) {
+        console.error("Failed to fetch entities", err);
+      } finally {
+        setLoading(false);
+      }
     }
-  }, [role]);
+    fetchData();
+  }, [role, targetRole]);
 
   if (!role) return null;
 
   const filtered = entities.filter(
     (e) =>
       e.name.toLowerCase().includes(search.toLowerCase()) ||
-      e.uniqueId.toString().includes(search) ||
-      e.email.toLowerCase().includes(search.toLowerCase())
+      (e.teacherId || e.studentId || e.adminId || e.upperManagementId || e.validatorId || "").toString().includes(search) ||
+      (e.email || "").toLowerCase().includes(search.toLowerCase())
   );
 
-  const handleDelete = (id: number) => {
-    if (confirm("Are you sure you want to delete this account?")) {
-      setEntities(entities.filter(e => e.id !== id));
-      // In a real app, you would call an API here to delete the entity
+  const handleDelete = async (id: number) => {
+    if (confirm(`Are you sure you want to delete this ${targetRole}?`)) {
+      try {
+        await deleteEntity(role as AuthRole, targetRole, id);
+        setEntities(entities.filter(e => e.id !== id));
+      } catch (err: any) {
+        alert(err.message || "Failed to delete account");
+      }
     }
   };
 
@@ -119,10 +141,10 @@ export default function EntityTable() {
                   </div>
                 </td>
                 <td style={{ padding: "8px 16px", fontSize: "var(--font-size-sm)", color: "var(--text-secondary)", fontFamily: "monospace" }}>
-                  {entity.uniqueId}
+                  {entity.teacherId || entity.studentId || entity.adminId || entity.upperManagementId || entity.validatorId || "N/A"}
                 </td>
                 <td style={{ padding: "8px 16px", fontSize: "var(--font-size-sm)", color: "var(--text-secondary)" }}>
-                  {entity.email}
+                  {entity.email || "N/A"}
                 </td>
                 <td style={{ padding: "8px 16px" }}>
                   <span
@@ -132,15 +154,15 @@ export default function EntityTable() {
                       gap: 4,
                       fontSize: "var(--font-size-xs)",
                       fontWeight: 500,
-                      color: entity.status === "active" ? "var(--success)" : "var(--text-muted)",
+                      color: "var(--success)",
                     }}
                   >
-                    <span style={{ width: 5, height: 5, borderRadius: "50%", background: entity.status === "active" ? "var(--success)" : "var(--text-muted)" }} />
-                    {entity.status}
+                    <span style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--success)" }} />
+                    Active
                   </span>
                 </td>
                 <td style={{ padding: "8px 16px", fontSize: "var(--font-size-xs)", color: "var(--text-muted)" }}>
-                  {new Date(entity.createdAt).toLocaleDateString()}
+                  {new Date(entity.CreatedAt || entity.createdAt || Date.now()).toLocaleDateString()}
                 </td>
                 <td style={{ padding: "8px 16px" }}>
                   <button

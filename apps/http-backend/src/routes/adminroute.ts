@@ -143,4 +143,141 @@ AdminRouter.post("/changepassword", AdminAuthMiddleware, async (req: Request, re
   }
 });
 
+AdminRouter.get("/teacher", AdminAuthMiddleware, async (req: Request, res: Response) => {
+  try {
+    const teachers = await prisma.teacher.findMany({
+      where: { createdByAdminId: req.adminId },
+      select: { id: true, name: true, teacherId: true, email: true, CreatedAt: true }
+    });
+    res.json(teachers);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching teachers" });
+  }
+});
+
+AdminRouter.delete("/teacher/:id", AdminAuthMiddleware, async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(req.params.id as string);
+    await prisma.teacher.delete({ where: { id, createdByAdminId: req.adminId } });
+    res.json({ message: "Teacher deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Error deleting teacher" });
+  }
+});
+
+AdminRouter.get("/student", AdminAuthMiddleware, async (req: Request, res: Response) => {
+  try {
+    const students = await prisma.student.findMany({
+      where: { createdByAdminId: req.adminId },
+      select: { id: true, name: true, studentId: true, CreatedAt: true }
+    });
+    res.json(students);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching students" });
+  }
+});
+
+AdminRouter.delete("/student/:id", AdminAuthMiddleware, async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(req.params.id as string);
+    await prisma.student.delete({ where: { id, createdByAdminId: req.adminId } });
+    res.json({ message: "Student deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Error deleting student" });
+  }
+});
+/* ── All users (for compose recipient lookup) ── */
+AdminRouter.get("/users", AdminAuthMiddleware, async (req: Request, res: Response) => {
+  try {
+    const teachers = await prisma.teacher.findMany({
+      where: { createdByAdminId: req.adminId },
+      select: { id: true, name: true, teacherId: true, email: true, CreatedAt: true }
+    });
+    const students = await prisma.student.findMany({
+      where: { createdByAdminId: req.adminId },
+      select: { id: true, name: true, studentId: true, CreatedAt: true }
+    });
+    res.json([...teachers, ...students]);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching users" });
+  }
+});
+/* ── Messages ── */
+AdminRouter.get("/messages", AdminAuthMiddleware, async (req: Request, res: Response) => {
+  const folder = (req.query.folder as string) || "inbox";
+  try {
+    const admin = await prisma.admin.findUnique({ where: { id: req.adminId } });
+    if (!admin) return res.status(404).json({ message: "Admin not found" });
+
+    let messages;
+    if (folder === "sent") {
+      messages = await prisma.message.findMany({
+        where: { senderRole: "admin", senderId: admin.id },
+        orderBy: { createdAt: "desc" },
+      });
+    } else if (folder === "starred") {
+      messages = await prisma.message.findMany({
+        where: {
+          OR: [
+            { recipientRole: "admin", recipientId: admin.id, starred: true },
+            { senderRole: "admin", senderId: admin.id, starred: true },
+          ],
+        },
+        orderBy: { createdAt: "desc" },
+      });
+    } else {
+      // inbox
+      messages = await prisma.message.findMany({
+        where: { recipientRole: "admin", recipientId: admin.id },
+        orderBy: { createdAt: "desc" },
+      });
+    }
+
+    res.json(messages.map((m) => ({
+      id: String(m.id),
+      from: m.senderName,
+      fromRole: m.senderRole,
+      to: m.recipientName,
+      toRole: m.recipientRole,
+      subject: m.subject,
+      body: m.body,
+      timestamp: m.createdAt.toISOString(),
+      read: m.read,
+      starred: m.starred,
+      folder: folder === "sent" ? "sent" : "inbox",
+    })));
+  } catch (error) {
+    console.error("Error fetching messages:", error);
+    res.status(500).json({ message: "Error fetching messages" });
+  }
+});
+
+AdminRouter.post("/messages", AdminAuthMiddleware, async (req: Request, res: Response) => {
+  const { to, subject, body } = req.body;
+  if (!to || !subject || !body) {
+    return res.status(400).json({ message: "to, subject, and body are required" });
+  }
+  try {
+    const admin = await prisma.admin.findUnique({ where: { id: req.adminId } });
+    if (!admin) return res.status(404).json({ message: "Admin not found" });
+
+    await prisma.message.create({
+      data: {
+        senderRole: "admin",
+        senderId: admin.id,
+        senderName: admin.name,
+        recipientRole: "unknown",
+        recipientId: 0,
+        recipientName: to,
+        subject,
+        body,
+      },
+    });
+    res.status(201).json({ message: "Message sent successfully" });
+  } catch (error) {
+    console.error("Error sending message:", error);
+    res.status(500).json({ message: "Error sending message" });
+  }
+});
+
 export default AdminRouter;

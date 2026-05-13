@@ -19,7 +19,6 @@ model Student {
   createdByAdminId Int
   CreatedAt        DateTime @default(now())
   UpdatedAt        DateTime @updatedAt
-  mails            Mail[]
   createdByAdmin   Admin    @relation("AdminCreatedStudents", fields: [createdByAdminId], references: [id])
 }
 
@@ -32,7 +31,6 @@ model Teacher {
   createdByAdminId Int
   CreatedAt        DateTime @default(now())
   UpdatedAt        DateTime @updatedAt
-  mails            Mail[]
   createdByAdmin   Admin    @relation("AdminCreatedTeachers", fields: [createdByAdminId], references: [id])
 }
 
@@ -44,7 +42,6 @@ model Validator {
   email                String            @unique
   CreatedAt            DateTime          @default(now())
   UpdatedAt            DateTime          @updatedAt
-  mails                Mail[]
   createdUpperManagers UpperManagement[] @relation("ValidatorCreatedUpperManagers")
 }
 
@@ -75,18 +72,18 @@ model Admin {
   createdStudents            Student[]       @relation("AdminCreatedStudents")
 }
 
-model Mail {
-  id          Int       @id @default(autoincrement())
-  to          String
-  from        String
-  subject     String
-  body        String
-  studentid   Int
-  TeacherId   Int
-  student     Student   @relation(fields: [studentid], references: [id])
-  Teacher     Teacher   @relation(fields: [TeacherId], references: [id])
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  validator   Validator @relation(fields: [validatorId], references: [id])
-  validatorId Int
+model Message {
+  id             Int      @id @default(autoincrement())
+  senderRole     String   // e.g. "admin", "teacher", "student", "validator", "uppermanagement"
+  senderId       Int      // The internal id of the sender within their role table
+  senderName     String   // Display name of the sender
+  recipientRole  String   // e.g. "admin", "teacher", "student", "validator", "uppermanagement"
+  recipientId    Int      // The internal id of the recipient within their role table
+  recipientName  String   // Display name or email of the recipient
+  subject        String
+  body           String
+  read           Boolean  @default(false)
+  starred        Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }

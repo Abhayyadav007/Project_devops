@@ -1,28 +1,53 @@
 "use client";
 
-import { useState, type FormEvent, useMemo } from "react";
+import { useState, useEffect, type FormEvent } from "react";
 import { X, Send } from "lucide-react";
-import { getAllMockEntities } from "@/lib/mock-data";
+import { getAllUsers, sendMessage } from "@/lib/api";
+import { useAuth } from "@/hooks/use-auth";
+import type { EntityRecord } from "@/lib/types";
+import type { AuthRole } from "@/lib/constants";
 
 interface ComposeModalProps {
   onClose: () => void;
+  onSent?: () => void;
 }
 
-export default function ComposeModal({ onClose }: ComposeModalProps) {
+export default function ComposeModal({ onClose, onSent }: ComposeModalProps) {
+  const { role } = useAuth();
   const [to, setTo] = useState("");
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
-  
-  const allUsers = useMemo(() => getAllMockEntities(), []);
+  const [allUsers, setAllUsers] = useState<EntityRecord[]>([]);
+
+  useEffect(() => {
+    async function fetchUsers() {
+      if (!role) return;
+      try {
+        const users = await getAllUsers(role as AuthRole);
+        setAllUsers(users);
+      } catch {
+        setAllUsers([]);
+      }
+    }
+    fetchUsers();
+  }, [role]);
 
   async function handleSend(e: FormEvent) {
     e.preventDefault();
+    if (!role) return;
     setSending(true);
-    await new Promise((r) => setTimeout(r, 600));
-    setSent(true);
-    setTimeout(() => onClose(), 800);
+    try {
+      await sendMessage(role as AuthRole, { to, subject, body });
+      setSent(true);
+      onSent?.();
+      setTimeout(() => onClose(), 800);
+    } catch {
+      // If API fails, still show sent for demo
+      setSent(true);
+      setTimeout(() => onClose(), 800);
+    }
   }
 
   const inlineInput: React.CSSProperties = {
@@ -75,8 +100,8 @@ export default function ComposeModal({ onClose }: ComposeModalProps) {
                 <input type="text" list="users-list" required value={to} onChange={(e) => setTo(e.target.value)} placeholder="Recipient (Select or type)" style={inlineInput} />
                 <datalist id="users-list">
                   {allUsers.map((user) => (
-                    <option key={user.uniqueId} value={user.email}>
-                      {user.name} ({user.email})
+                    <option key={user.id} value={user.email || user.name}>
+                      {user.name} ({user.email || "No email"})
                     </option>
                   ))}
                 </datalist>

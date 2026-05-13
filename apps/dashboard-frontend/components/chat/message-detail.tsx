@@ -1,11 +1,11 @@
 "use client";
 
 import { Star } from "lucide-react";
-import type { MockMessage } from "@/lib/mock-data";
+import type { Message } from "@/lib/types";
 import { useState, useCallback } from "react";
 
 interface MessageDetailProps {
-  message: MockMessage;
+  message: Message;
 }
 
 interface ThreadMessage {
