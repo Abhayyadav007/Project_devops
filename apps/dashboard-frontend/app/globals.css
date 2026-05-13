@@ -1,0 +1,95 @@
+@import "tailwindcss";
+
+/* ── Gmail-inspired minimal B&W design system ── */
+/* Use @layer base so our tokens load correctly with Tailwind v4 */
+
+@layer base {
+  :root {
+    color-scheme: light;
+    --bg: #ffffff;
+    --bg-secondary: #f8f9fa;
+    --bg-hover: #f1f3f4;
+    --bg-active: #e8eaed;
+    --bg-surface: #ffffff;
+    --text: #202124;
+    --text-secondary: #5f6368;
+    --text-muted: #9aa0a6;
+    --border: #e0e0e0;
+    --border-strong: #dadce0;
+    --accent: #000000;
+    --accent-text: #ffffff;
+    --success: #188038;
+    --error: #c5221f;
+    --font-size-xs: 11px;
+    --font-size-sm: 12px;
+    --font-size-base: 13px;
+    --font-size-md: 14px;
+    --font-size-lg: 16px;
+    --font-size-xl: 18px;
+    --font-size-2xl: 22px;
+    --radius: 8px;
+    --radius-sm: 4px;
+  }
+
+  /* :root.dark has higher specificity (0-2-0) than :root (0-1-0) */
+  :root.dark {
+    color-scheme: dark;
+    --bg: #1a1a1a;
+    --bg-secondary: #111111;
+    --bg-hover: #2a2a2a;
+    --bg-active: #333333;
+    --bg-surface: #1a1a1a;
+    --text: #e8eaed;
+    --text-secondary: #9aa0a6;
+    --text-muted: #6b6b6b;
+    --border: #333333;
+    --border-strong: #444444;
+    --accent: #ffffff;
+    --accent-text: #000000;
+    --success: #81c995;
+    --error: #f28b82;
+  }
+
+  html {
+    height: 100%;
+  }
+
+  body {
+    min-height: 100%;
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-inter), "Google Sans", Roboto, Arial, sans-serif;
+    font-size: var(--font-size-base);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    line-height: 1.5;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+::selection {
+  background: rgba(0, 0, 0, 0.08);
+  color: inherit;
+}
+.dark ::selection {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* Minimal animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.animate-fade-in {
+  animation: fadeIn 0.15s ease-out both;
+}

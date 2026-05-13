@@ -1,0 +1,92 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Student {
+  id               Int      @id @default(autoincrement())
+  name             String
+  studentId        Int      @unique
+  password         String
+  createdByAdminId Int
+  CreatedAt        DateTime @default(now())
+  UpdatedAt        DateTime @updatedAt
+  mails            Mail[]
+  createdByAdmin   Admin    @relation("AdminCreatedStudents", fields: [createdByAdminId], references: [id])
+}
+
+model Teacher {
+  id               Int      @id @default(autoincrement())
+  name             String
+  teacherId        Int      @unique
+  password         String
+  email            String   @unique
+  createdByAdminId Int
+  CreatedAt        DateTime @default(now())
+  UpdatedAt        DateTime @updatedAt
+  mails            Mail[]
+  createdByAdmin   Admin    @relation("AdminCreatedTeachers", fields: [createdByAdminId], references: [id])
+}
+
+model Validator {
+  id                   Int               @id @default(autoincrement())
+  name                 String
+  validatorId          Int               @unique
+  password             String
+  email                String            @unique
+  CreatedAt            DateTime          @default(now())
+  UpdatedAt            DateTime          @updatedAt
+  mails                Mail[]
+  createdUpperManagers UpperManagement[] @relation("ValidatorCreatedUpperManagers")
+}
+
+model UpperManagement {
+  id                   Int       @id @default(autoincrement())
+  name                 String
+  upperManagementId    Int       @unique
+  password             String
+  email                String    @unique
+  createdByValidatorId Int
+  CreatedAt            DateTime  @default(now())
+  UpdatedAt            DateTime  @updatedAt
+  createdByValidator   Validator @relation("ValidatorCreatedUpperManagers", fields: [createdByValidatorId], references: [id])
+  createdAdmins        Admin[]   @relation("UpperManagementCreatedAdmins")
+}
+
+model Admin {
+  id                         Int             @id @default(autoincrement())
+  name                       String
+  adminId                    Int             @unique
+  password                   String
+  email                      String          @unique
+  createdByUpperManagementId Int
+  CreatedAt                  DateTime        @default(now())
+  UpdatedAt                  DateTime        @updatedAt
+  createdByUpperManagement   UpperManagement @relation("UpperManagementCreatedAdmins", fields: [createdByUpperManagementId], references: [id])
+  createdTeachers            Teacher[]       @relation("AdminCreatedTeachers")
+  createdStudents            Student[]       @relation("AdminCreatedStudents")
+}
+
+model Mail {
+  id          Int       @id @default(autoincrement())
+  to          String
+  from        String
+  subject     String
+  body        String
+  studentid   Int
+  TeacherId   Int
+  student     Student   @relation(fields: [studentid], references: [id])
+  Teacher     Teacher   @relation(fields: [TeacherId], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  validator   Validator @relation(fields: [validatorId], references: [id])
+  validatorId Int
+}

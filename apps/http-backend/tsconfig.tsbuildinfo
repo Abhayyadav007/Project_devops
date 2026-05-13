@@ -1,0 +1,1 @@
+{"root":["./src/ensure-database.ts","./src/env.ts","./src/index.ts","./src/middleware.ts","./src/prisma-migrate.ts","./src/seed.ts","./src/startup-db.ts","./src/routes/adminroute.ts","./src/routes/studentroute.ts","./src/routes/teacherrouters.ts","./src/routes/u-m-router.ts","./src/routes/validatorroute.ts"],"version":"5.9.2"}

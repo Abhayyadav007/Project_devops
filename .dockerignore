@@ -1,0 +1,24 @@
+# Deps (reinstalled inside Docker)
+node_modules
+.pnpm-store
+
+# Build outputs (rebuilt inside Docker)
+.next
+dist
+.turbo
+
+# Git
+.git
+.github
+
+# Logs
+*.log
+
+# Local env (secrets passed via ARG/ENV instead)
+.env
+.env.local
+.env.*.local
+
+# OS junk
+.DS_Store
+Thumbs.db

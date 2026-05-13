@@ -1,0 +1,26 @@
+{
+  "name": "wsbackend",
+  "version": "1.0.0",
+  "description": "WebSocket backend for real-time chat",
+  "main": "dist/index.js",
+  "devDependencies": {
+    "@repo/typescript-config": "workspace:*",
+    "@types/jsonwebtoken": "^9.0.10"
+  },
+  "dependencies": {
+    "@types/express": "^5.0.6",
+    "@types/ws": "^8.18.1",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "ws": "^8.20.0"
+  },
+  "scripts": {
+    "start": "node dist/index.js",
+    "build": "tsc -b",
+    "dev": "npm run build && npm run start"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module"
+}
